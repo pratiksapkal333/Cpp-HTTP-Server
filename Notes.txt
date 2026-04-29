@@ -1,0 +1,9 @@
+Step 1:
+✅ What a socket is
+✅ What a port is (conceptually)
+✅ Socket = file descriptor
+✅ How Linux tracks sockets
+✅ How to inspect using /proc
+
+Step 2:
+
