@@ -17,70 +17,93 @@ int main() {
 	listen(sock_fd, 5);
 
 	while(true){  // server keeps running forever
-		std::cout << "Waiting for client..." << std::endl;
 
+		// Connecting to client
+		std::cout << "Waiting for client..." << std::endl;
 		int client_fd = accept(sock_fd, NULL, NULL); // waits until client connects
 
+		int pid = fork();
 
-		std::cout << "Client connected! FD: " << client_fd << std::endl;
-
-		char buffer[1024] = {0}; // Creat memory to store the incoming data
-
-		read(client_fd, buffer, 1024); //Reads data from client socket and stores it in buffer we just created
-
-		// the buffer is - GET / HTTP/1.1
-		std::string request(buffer);
-
-		//extract first line only
-		size_t line_end = request.find("\r\n");
-		std::string request_line = request.substr(0, line_end);
-
-		if (!request_line.empty() && request_line.back() == '\r'){request_line.pop_back();}
+		if(pid == 0){
+			//child process
+			close(sock_fd); //doesn't accept new clients
+			std::cout << "Child handling client FD: " << client_fd << std::endl;
 
 
-		size_t pos1 = request_line.find(" "); //finds first space
-		size_t pos2 = request_line.find(" ", pos1 + 1); //finds second space
-
-		std::string method = request_line.substr(0, pos1); // estracts - GET
-		std::string path = request_line.substr(pos1+1, pos2-pos1-1);//estracts - /
+			char buffer[1024] = {0}; // Create memory to store the incoming data
 
 
-		std::cout << "Request Line: [" << request_line << "]" << std::endl;
-		std::cout << "Method: " << method << std::endl;
-		std::cout << "path" << path << std::endl;
+			// reads and extracts the method and path from buffer data
+			read(client_fd, buffer, 1024); //Reads data from client socket and stores it in buffer we just created
+			// Data - GET / HTTP/1.1
+			std::string request(buffer);
+			//extract first line only
 
-		
-		std::cout << "Request received:\n" << buffer << std::endl; // prints the HTTP request
+			size_t line_end = request.find("\r\n");
+			std::string request_line = request.substr(0, line_end);
 
-		std::string response_body; // stores the message part
-		
-		// if statement compares the requested path
-		if (path == "/"){
-			response_body = "Hello World\n";
-		} else if (path == "/hello"){
-			response_body = "Hello from /hello\n";
-		} else {
-			response_body = "404 Not Found\n";
+			if (!request_line.empty() && request_line.back() == '\r'){
+				request_line.pop_back();
+			} //removes extra characters like \r 
+			
+			size_t pos1 = request_line.find(" "); //finds first space
+			size_t pos2 = request_line.find(" ", pos1 + 1); //finds second space
+
+			std::string method = request_line.substr(0, pos1); // estracts - GET
+			std::string path = request_line.substr(pos1+1, pos2-pos1-1);//estracts - /
+
+
+			// prints the method and path and HTTP request
+			std::cout << "Request Line: [" << request_line << "]" << std::endl;
+			std::cout << "Method: " << method << std::endl;
+			std::cout << "path" << path << std::endl;
+			std::cout << "Request received:\n" << buffer << std::endl; // prints the HTTP request
+
+
+			// Response
+			std::string response_body; // stores the message part
+			std::string status_line; //shows correctness of client request
+
+
+			// if statement compares the requested path
+			if (path == "/"){
+				response_body = "Hello World\n";
+				status_line = "HTTP/1.1 200 OK\r\n";
+			} 
+			else if (path == "/hello"){
+				response_body = "Hello from /hello\n";
+				status_line = "HTTP/1.1 200 OK\r\n";
+			} 
+			else {
+				response_body = "404 Not Found\n";
+				status_line = "HTTP/1.1 404 Not Found\r\n";
+			}
+
+
+			//Sends response to client
+			std::cout << "Path: [" << path << "]" << std::endl;
+			std::cout << "Length: " << path.length() << std::endl;
+
+			std::string response=
+				status_line +
+				"Content-Type: text/plain\r\n"
+				"Content-Length: " + std::to_string(response_body.size()) + "\r\n"
+				"\r\n" + 
+				response_body;  //response_body.size() dynamically calc length 
+
+		    sleep(20);
+			write(client_fd, response.c_str(), response.size());//c_str() converts string to C-style char* needed for write() // size() - total bytes to send
+			close(client_fd); //closes connection with client , frees file decriptor , prevent resource leak
+
+			exit(0);
+
 		}
-		std::cout << "Path: [" << path << "]" << std::endl;
-		std::cout << "Length: " << path.length() << std::endl;
-		std::string response=
-			"HTTP/1.1 200 OK\r\n"
-			"Content-Type: text/plain\r\n"
-			"Content-Length: " + std::to_string(response_body.size()) + "\r\n"
-			"\r\n" + 
-			response_body;  //response_body.size() dynamically calc length 
-
+		else {
+			//parent process
+			close(client_fd); // parent doesn't handle this client
+		}
 		
-
-		write(client_fd, response.c_str(), response.size());//c_str() converts string to C-style char* needed for write() 
-															// size() - total bytes to send
-		close(client_fd); //closes connection with client , frees file decriptor , prevent resource leak
-
 	}
 
-	
-
-		
 	return 0;
 }
