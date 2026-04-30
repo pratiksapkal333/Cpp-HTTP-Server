@@ -4,8 +4,10 @@
 #include <unistd.h> // close() is inside this lib
 #include <cstring>
 #include <string>
+#include <thread>
 
 int main() {
+
 	int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
 
 	sockaddr_in addr;
@@ -22,12 +24,9 @@ int main() {
 		std::cout << "Waiting for client..." << std::endl;
 		int client_fd = accept(sock_fd, NULL, NULL); // waits until client connects
 
-		int pid = fork();
-
-		if(pid == 0){
-			//child process
-			close(sock_fd); //doesn't accept new clients
-			std::cout << "Child handling client FD: " << client_fd << std::endl;
+		std::thread t([client_fd](){
+				
+			std::cout << "Handling client FD: " << client_fd << std::endl;
 
 
 			char buffer[1024] = {0}; // Create memory to store the incoming data
@@ -53,11 +52,11 @@ int main() {
 			std::string path = request_line.substr(pos1+1, pos2-pos1-1);//estracts - /
 
 
-			// prints the method and path and HTTP request
-			std::cout << "Request Line: [" << request_line << "]" << std::endl;
-			std::cout << "Method: " << method << std::endl;
-			std::cout << "path" << path << std::endl;
-			std::cout << "Request received:\n" << buffer << std::endl; // prints the HTTP request
+			// prints the method and path and HTTP request (Was only for error solving)
+			// std::cout << "Request Line: [" << request_line << "]" << std::endl;
+			// std::cout << "Method: " << method << std::endl;
+			// std::cout << "path" << path << std::endl;
+			// std::cout << "Request received:\n" << buffer << std::endl; // prints the HTTP request
 
 
 			// Response
@@ -91,17 +90,14 @@ int main() {
 				"\r\n" + 
 				response_body;  //response_body.size() dynamically calc length 
 
-		    sleep(20);
+			sleep(10);
 			write(client_fd, response.c_str(), response.size());//c_str() converts string to C-style char* needed for write() // size() - total bytes to send
 			close(client_fd); //closes connection with client , frees file decriptor , prevent resource leak
 
-			exit(0);
+		});
+		t.detach();
 
-		}
-		else {
-			//parent process
-			close(client_fd); // parent doesn't handle this client
-		}
+		
 		
 	}
 
