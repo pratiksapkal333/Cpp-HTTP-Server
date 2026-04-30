@@ -5,6 +5,8 @@
 #include <cstring>
 #include <string>
 #include <thread>
+#include <fcntl.h> //file control (used for unblocking)
+
 
 int main() {
 
@@ -23,6 +25,10 @@ int main() {
 		// Connecting to client
 		std::cout << "Waiting for client..." << std::endl;
 		int client_fd = accept(sock_fd, NULL, NULL); // waits until client connects
+		int flags = fcntl(client_fd, F_GETFL, 0); //gets current flags of socket
+		fcntl(client_fd, F_SETFL, flags | O_NONBLOCK); //sets the flag to flag that enables non-blocking mode while keeping old flags
+
+
 
 		std::thread t([client_fd](){
 				
@@ -33,7 +39,18 @@ int main() {
 
 
 			// reads and extracts the method and path from buffer data
-			read(client_fd, buffer, 1024); //Reads data from client socket and stores it in buffer we just created
+			int bytes = read(client_fd, buffer, 1024); //Reads data from client socket and stores it in buffer we just created
+			
+			if (bytes > 0){
+				std::cout << "Read" << bytes << " bytes\n";
+			}
+			else if (bytes == 0){
+				std::cout << "Client Disconnected\n";
+			}
+			else {
+				perror("read");//prints linux error msg
+				close(client_fd);
+			}
 			// Data - GET / HTTP/1.1
 			std::string request(buffer);
 			//extract first line only
