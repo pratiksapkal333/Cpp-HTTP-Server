@@ -1,9 +1,13 @@
-Step 1:
-✅ What a socket is
-✅ What a port is (conceptually)
-✅ Socket = file descriptor
-✅ How Linux tracks sockets
-✅ How to inspect using /proc
+flowchart for mow is 
 
-Step 2:
-
+while(true)
+    ↓
+select() blocks (CPU idle, efficient)
+    ↓
+one/more clients ready
+    ↓
+for loop checks which ones
+    ↓
+handle them
+    ↓
+repeat

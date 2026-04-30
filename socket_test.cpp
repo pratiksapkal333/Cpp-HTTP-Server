@@ -6,7 +6,8 @@
 #include <string>
 #include <thread>
 #include <fcntl.h> //file control (used for unblocking)
-
+#include <sys/select.h>
+#include <vector>
 
 int main() {
 
@@ -20,103 +21,103 @@ int main() {
 	bind(sock_fd, (struct sockaddr*)&addr, sizeof(addr));
 	listen(sock_fd, 5);
 
+	std::vector<int> clients;
+
 	while(true){  // server keeps running forever
 
-		// Connecting to client
-		std::cout << "Waiting for client..." << std::endl;
-		int client_fd = accept(sock_fd, NULL, NULL); // waits until client connects
-		int flags = fcntl(client_fd, F_GETFL, 0); //gets current flags of socket
-		fcntl(client_fd, F_SETFL, flags | O_NONBLOCK); //sets the flag to flag that enables non-blocking mode while keeping old flags
+		//add server socket
+		fd_set readfds;
+		FD_ZERO(&readfds);
 
+		
+		FD_SET(sock_fd, &readfds);
+		int max_fd = sock_fd;
 
+		//add all client sockets
+		for (int fd : clients){
+			FD_SET(fd, &readfds);
+			if (fd > max_fd) max_fd = fd;
+		}// watches all these sockets
 
-		std::thread t([client_fd](){
-				
-			std::cout << "Handling client FD: " << client_fd << std::endl;
+		select(max_fd + 1, &readfds, NULL, NULL, NULL);
 
+		if (FD_ISSET(sock_fd, &readfds)){
+			int new_client = accept(sock_fd, NULL, NULL);
 
-			char buffer[1024] = {0}; // Create memory to store the incoming data
+			std::cout << "New client: " << new_client << std::endl;
 
+			clients.push_back(new_client);
 
-			// reads and extracts the method and path from buffer data
-			int bytes = read(client_fd, buffer, 1024); //Reads data from client socket and stores it in buffer we just created
-			
-			if (bytes > 0){
-				std::cout << "Read" << bytes << " bytes\n";
-			}
-			else if (bytes == 0){
-				std::cout << "Client Disconnected\n";
-			}
-			else {
-				perror("read");//prints linux error msg
-				close(client_fd);
-			}
-			// Data - GET / HTTP/1.1
-			std::string request(buffer);
-			//extract first line only
+			int flags = fcntl(new_client, F_GETFL, 0);
+			fcntl(new_client, F_SETFL, flags | O_NONBLOCK);
+		}
+		
+		for (int i = 0; i < clients.size(); i++) {
 
-			size_t line_end = request.find("\r\n");
-			std::string request_line = request.substr(0, line_end);
+   			int fd = clients[i];
 
-			if (!request_line.empty() && request_line.back() == '\r'){
+			if (FD_ISSET(fd, &readfds)) {
+				std::cout << "Client ready: " << fd << std::endl;
+
+				char buffer[1024] = {0}; 
+				int bytes = read(fd, buffer, 1024);
+
+				if (bytes <= 0) {
+					close(fd);
+					std::cout << "Client Disconnected: " << fd << std::endl;
+					
+					clients.erase(clients.begin() + i);
+					i--;
+					continue;
+				}
+
+				std::string request(buffer);
+
+				size_t line_end = request.find("\r\n");
+				std::string request_line = request.substr(0, line_end);
+		
+				if (!request_line.empty() && request_line.back() == '\r'){
 				request_line.pop_back();
-			} //removes extra characters like \r 
-			
-			size_t pos1 = request_line.find(" "); //finds first space
-			size_t pos2 = request_line.find(" ", pos1 + 1); //finds second space
+				}
 
-			std::string method = request_line.substr(0, pos1); // estracts - GET
-			std::string path = request_line.substr(pos1+1, pos2-pos1-1);//estracts - /
+				size_t pos1 = request_line.find(" ");
+				size_t pos2 = request_line.find(" ", pos1 + 1); 
 
+				std::string path = request_line.substr(pos1+1, pos2-pos1-1);//estracts - /
 
-			// prints the method and path and HTTP request (Was only for error solving)
-			// std::cout << "Request Line: [" << request_line << "]" << std::endl;
-			// std::cout << "Method: " << method << std::endl;
-			// std::cout << "path" << path << std::endl;
-			// std::cout << "Request received:\n" << buffer << std::endl; // prints the HTTP request
+				std::string response_body; // stores the message part
+				std::string status_line; //shows correctness of client request
 
 
-			// Response
-			std::string response_body; // stores the message part
-			std::string status_line; //shows correctness of client request
+				// if statement compares the requested path
+				if (path == "/"){
+					response_body = "Hello World\n";
+					status_line = "HTTP/1.1 200 OK\r\n";
+				} 
+				else if (path == "/hello"){
+					response_body = "Hello from /hello\n";
+					status_line = "HTTP/1.1 200 OK\r\n";
+				} 
+				else {
+					response_body = "404 Not Found\n";
+					status_line = "HTTP/1.1 404 Not Found\r\n";
+				}
 
-
-			// if statement compares the requested path
-			if (path == "/"){
-				response_body = "Hello World\n";
-				status_line = "HTTP/1.1 200 OK\r\n";
-			} 
-			else if (path == "/hello"){
-				response_body = "Hello from /hello\n";
-				status_line = "HTTP/1.1 200 OK\r\n";
-			} 
-			else {
-				response_body = "404 Not Found\n";
-				status_line = "HTTP/1.1 404 Not Found\r\n";
-			}
-
-
-			//Sends response to client
-			std::cout << "Path: [" << path << "]" << std::endl;
-			std::cout << "Length: " << path.length() << std::endl;
-
-			std::string response=
+				std::string response=
 				status_line +
 				"Content-Type: text/plain\r\n"
 				"Content-Length: " + std::to_string(response_body.size()) + "\r\n"
 				"\r\n" + 
 				response_body;  //response_body.size() dynamically calc length 
+				
+				
+				write(fd, response.c_str(), response.size());//c_str() converts string to C-style char* needed for write() // size() - total bytes to send
+				close(fd); //closes connection with client , frees file decriptor , prevent resource leak
 
-			sleep(10);
-			write(client_fd, response.c_str(), response.size());//c_str() converts string to C-style char* needed for write() // size() - total bytes to send
-			close(client_fd); //closes connection with client , frees file decriptor , prevent resource leak
-
-		});
-		t.detach();
-
-		
+			}
+		}
 		
 	}
 
-	return 0;
+return 0;
 }
