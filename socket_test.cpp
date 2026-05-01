@@ -8,6 +8,7 @@
 #include <fcntl.h> //file control (used for unblocking)
 #include <sys/select.h>
 #include <vector>
+#include <sys/epoll.h>
 
 int main() {
 
@@ -20,6 +21,13 @@ int main() {
 	
 	bind(sock_fd, (struct sockaddr*)&addr, sizeof(addr));
 	listen(sock_fd, 5);
+
+	int epfd = epoll_create1(0);
+	struct epoll_event ev;
+	ev.events = EPOLLIN;
+	ev.data.fd = sock_fd;
+
+	epoll_ctl(epfd, EPOLL_CTL_ADD, sock_fd, &ev);
 
 	std::vector<int> clients;
 
