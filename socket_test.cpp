@@ -112,6 +112,7 @@ int main() {
 				
 				
 				write(fd, response.c_str(), response.size());//c_str() converts string to C-style char* needed for write() // size() - total bytes to send
+				std::cout << "server closing FD: " << fd << std::endl;
 				close(fd); //closes connection with client , frees file decriptor , prevent resource leak
 
 			}
