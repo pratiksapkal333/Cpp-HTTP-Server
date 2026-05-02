@@ -68,18 +68,35 @@ int main() {
 			else {
 				std::cout << "Client ready: " << fd << std::endl;
 
-				char buffer[1024] = {0}; 
-				int bytes = read(fd, buffer, 1024);
+				std::string request;
+				char buffer[1024];
+				
+				while (true){
+					int bytes = read(fd, buffer, 1024);
 
-				if (bytes <= 0) {
-					std::cout << "Client Disconnected: " << fd << std::endl;
-					
-					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
-					close(fd);
-					continue;
-				}
+					if (bytes > 0){
+						request.append(buffer, bytes);
 
-				std::string request(buffer);
+						//new condition
+						if (request.find("\r\n\r\n") != std::string::npos){
+							break; //full request received
+						}
+					}
+					else if (bytes == 0) {
+						//client closed connections
+						std::cout << "Client Disconnected: " << fd << std::endl;
+						
+						epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+						close(fd);
+						break;
+					}
+					else{
+						//non-blocking: no more data RIGHT NOW
+						break;
+					}
+				
+				}	
+				//std::string request(buffer);
 
 				size_t line_end = request.find("\r\n");
 				std::string request_line = request.substr(0, line_end);
