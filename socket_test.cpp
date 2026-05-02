@@ -6,8 +6,6 @@
 #include <string>
 #include <thread>
 #include <fcntl.h> //file control (used for unblocking)
-#include <sys/select.h>
-#include <vector>
 #include <sys/epoll.h>
 
 int main() {
@@ -22,60 +20,62 @@ int main() {
 	bind(sock_fd, (struct sockaddr*)&addr, sizeof(addr));
 	listen(sock_fd, 5);
 
+	// make server unblocking
+	int flags = fcntl(sock_fd, F_GETFL, 0);
+				fcntl(sock_fd, F_SETFL, flags | O_NONBLOCK);
+
+	// create epoll instance
 	int epfd = epoll_create1(0);
+
 	struct epoll_event ev;
 	ev.events = EPOLLIN;
 	ev.data.fd = sock_fd;
 
 	epoll_ctl(epfd, EPOLL_CTL_ADD, sock_fd, &ev);
 
-	std::vector<int> clients;
 
 	while(true){  // server keeps running forever
 
-		//add server socket
-		fd_set readfds;
-		FD_ZERO(&readfds);
+		//using epoll_wait()
+		struct epoll_event events[10];
 
+		int nfds = epoll_wait(epfd, events, 10, -1);
+
+		for (int i = 0; i < nfds; i++){
+
+			int fd = events[i].data.fd;
 		
-		FD_SET(sock_fd, &readfds);
-		int max_fd = sock_fd;
+			// NEW CLIENT
+			if (fd == sock_fd){
 
-		//add all client sockets
-		for (int fd : clients){
-			FD_SET(fd, &readfds);
-			if (fd > max_fd) max_fd = fd;
-		}// watches all these sockets
+				int new_client = accept(sock_fd, NULL, NULL);
 
-		select(max_fd + 1, &readfds, NULL, NULL, NULL);
+				std::cout << "New client: " << new_client << std::endl;
 
-		if (FD_ISSET(sock_fd, &readfds)){
-			int new_client = accept(sock_fd, NULL, NULL);
+				//Makes client non-blocking
+				int flags = fcntl(new_client, F_GETFL, 0);
+                fcntl(new_client, F_SETFL, flags | O_NONBLOCK);
 
-			std::cout << "New client: " << new_client << std::endl;
+				// Add client to epoll
+				struct epoll_event client_ev;
+				client_ev.events = EPOLLIN;
+				client_ev.data.fd = new_client;
 
-			clients.push_back(new_client);
+				epoll_ctl(epfd, EPOLL_CTL_ADD, new_client, &client_ev);
 
-			int flags = fcntl(new_client, F_GETFL, 0);
-			fcntl(new_client, F_SETFL, flags | O_NONBLOCK);
-		}
-		
-		for (int i = 0; i < clients.size(); i++) {
-
-   			int fd = clients[i];
-
-			if (FD_ISSET(fd, &readfds)) {
+			}
+			// EXISTING CLIENT
+			else {
 				std::cout << "Client ready: " << fd << std::endl;
 
 				char buffer[1024] = {0}; 
 				int bytes = read(fd, buffer, 1024);
 
 				if (bytes <= 0) {
-					close(fd);
 					std::cout << "Client Disconnected: " << fd << std::endl;
 					
-					clients.erase(clients.begin() + i);
-					i--;
+					epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+					close(fd);
 					continue;
 				}
 
@@ -121,12 +121,11 @@ int main() {
 				
 				write(fd, response.c_str(), response.size());//c_str() converts string to C-style char* needed for write() // size() - total bytes to send
 				std::cout << "server closing FD: " << fd << std::endl;
+				epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 				close(fd); //closes connection with client , frees file decriptor , prevent resource leak
 
-			}
+				}	
+			}	
 		}
-		
-	}
-
 return 0;
 }

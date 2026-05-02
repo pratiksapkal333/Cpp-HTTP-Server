@@ -1,13 +1,15 @@
-flowchart for mow is 
+Full Flow (epoll())
+1. create epoll
+2. register server socket
 
-while(true)
-    ↓
-select() blocks (CPU idle, efficient)
-    ↓
-one/more clients ready
-    ↓
-for loop checks which ones
-    ↓
-handle them
-    ↓
-repeat
+LOOP:
+    wait for events
+
+    for each ready fd:
+        if server:
+            accept client
+            register client
+        else:
+            read request
+            send response
+            remove client
