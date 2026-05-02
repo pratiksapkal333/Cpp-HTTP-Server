@@ -28,7 +28,7 @@ int main() {
 	int epfd = epoll_create1(0);
 
 	struct epoll_event ev;
-	ev.events = EPOLLIN;
+	ev.events = EPOLLIN | EPOLLET;
 	ev.data.fd = sock_fd;
 
 	epoll_ctl(epfd, EPOLL_CTL_ADD, sock_fd, &ev);
@@ -58,7 +58,7 @@ int main() {
 
 				// Add client to epoll
 				struct epoll_event client_ev;
-				client_ev.events = EPOLLIN;
+				client_ev.events = EPOLLIN | EPOLLET;
 				client_ev.data.fd = new_client;
 
 				epoll_ctl(epfd, EPOLL_CTL_ADD, new_client, &client_ev);
@@ -72,7 +72,7 @@ int main() {
 				char buffer[1024];
 				
 				while (true){
-					int bytes = read(fd, buffer, 1024);
+					int bytes = read(fd, buffer, sizeof(buffer));
 
 					if (bytes > 0){
 						request.append(buffer, bytes);
@@ -82,17 +82,21 @@ int main() {
 							break; //full request received
 						}
 					}
-					else if (bytes == 0) {
+					else if (bytes == -1){
+						//no more data (non-blocking)
+						break;
+					}
+					else {
 						//client closed connections
 						std::cout << "Client Disconnected: " << fd << std::endl;
 						
 						epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
 						close(fd);
 						break;
+					
 					}
-					else{
-						//non-blocking: no more data RIGHT NOW
-						break;
+					if (request.empty()) {
+   						 continue;
 					}
 				
 				}	

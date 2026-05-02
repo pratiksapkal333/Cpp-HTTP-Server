@@ -1,15 +1,11 @@
-Full Flow (epoll())
-1. create epoll
-2. register server socket
-
-LOOP:
-    wait for events
-
-    for each ready fd:
-        if server:
-            accept client
-            register client
-        else:
-            read request
-            send response
-            remove client
+epoll event
+    ↓
+read loop (collect full request)
+    ↓
+parse request (extract path)
+    ↓
+generate response
+    ↓
+write to client
+    ↓
+close fd
