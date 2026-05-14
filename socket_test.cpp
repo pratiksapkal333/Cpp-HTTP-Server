@@ -9,6 +9,19 @@
 #include <sys/epoll.h>
 #include <unordered_map>
 #include <errno.h> // errno, EAGAIN, EWOULDBLOCK
+#include <functional>
+
+std::string handle_home(const std::string&) {
+	return "Hello World\n";
+}
+std::string handle_hello(const std::string&) {
+	return "Hello from /hello\n";
+}
+std::string handle_login(const std::string& body) {
+	return "POST received: " + body + "\n";
+}
+
+using Handler = std::function<std::string(const std::string&)>;
 
 int main() {
 
@@ -36,6 +49,11 @@ int main() {
 
 	// Stores request data for each client FD
 	std::unordered_map<int, std::string> client_buffers;
+	std::unordered_map<std::string, Handler> routes;
+
+	routes["GET /"] = handle_home;
+	routes["GET /hello"] = handle_hello;
+	routes["POST /login"] = handle_login;
 
 	// Configure server event
 	struct epoll_event ev;
@@ -194,25 +212,23 @@ int main() {
 
 				std::string method = request_line.substr(0, pos1);
 				std::string path = request_line.substr(pos1 + 1, pos2 - pos1 - 1);
+
+				std::string route_key = method + " " + path;
 				std::cout << "METHOD: " << method << std::endl;
 				// HTTP response variables
 				std::string response_body;
 				std::string status_line;
 
 				// Route handling
-				if (path == "/") {
-					response_body = "Hello World\n";
-					status_line = "HTTP/1.1 200 OK\r\n";
-				}
-				else if (path == "/hello") {
-					response_body = "Hello from /hello\n";
+
+				if (routes.find(route_key) != routes.end()){
+					response_body = routes[route_key](body);
 					status_line = "HTTP/1.1 200 OK\r\n";
 				}
 				else {
 					response_body = "404 Not Found\n";
 					status_line = "HTTP/1.1 404 Not Found\r\n";
 				}
-
 				// Build HTTP response
 				std::string response =
 					status_line +

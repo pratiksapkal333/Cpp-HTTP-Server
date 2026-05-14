@@ -1,11 +1,29 @@
-epoll event
-    ↓
-read loop (collect full request)
-    ↓
-parse request (extract path)
-    ↓
-generate response
-    ↓
-write to client
-    ↓
-close fd
+Project: Event-Driven HTTP Server (C++ | Linux)
+
+Description:
+- Built a high-performance HTTP server from scratch using C++
+- Implemented Linux TCP socket programming
+- Used non-blocking sockets with fcntl(O_NONBLOCK)
+- Integrated epoll for scalable I/O multiplexing
+- Implemented edge-triggered epoll (EPOLLET)
+- Designed asynchronous event-driven reactor architecture
+- Added persistent per-client request buffering
+- Handled partial TCP packet reads correctly
+- Implemented HTTP request parsing
+- Added Content-Length based POST body handling
+- Supported GET and POST HTTP methods
+- Built modular routing system using unordered_map
+- Added function-based route handlers
+- Managed multiple concurrent client connections efficiently
+
+Concepts Learned:
+- Linux System Programming
+- Socket Programming
+- TCP/IP Networking
+- Non-blocking I/O
+- epoll Internals
+- Event-driven Architecture
+- HTTP Protocol
+- Partial Reads/Writes
+- Stateful Request Parsing
+- Backend Server Design
