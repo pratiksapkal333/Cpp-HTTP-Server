@@ -175,6 +175,10 @@ int main() {
 				if (request.size() < total_expected){
 					continue;
 				}
+				//Extract body
+				std::string body = request.substr(header_end + 4, content_length);
+				std::cout << "BODY: " << body << std::endl;
+
 				// Extract first HTTP line
 				size_t line_end = request.find("\r\n");
 				std::string request_line = request.substr(0, line_end);
@@ -188,8 +192,9 @@ int main() {
 				size_t pos1 = request_line.find(" ");
 				size_t pos2 = request_line.find(" ", pos1 + 1);
 
+				std::string method = request_line.substr(0, pos1);
 				std::string path = request_line.substr(pos1 + 1, pos2 - pos1 - 1);
-
+				std::cout << "METHOD: " << method << std::endl;
 				// HTTP response variables
 				std::string response_body;
 				std::string status_line;
