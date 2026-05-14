@@ -155,12 +155,26 @@ int main() {
 
 				// Reference to this client's request buffer
 				std::string& request = client_buffers[fd];
-
+				std::cout << request << std::endl;
+				size_t header_end = request.find("\r\n\r\n");
 				// Skip incomplete requests
-				if (request.find("\r\n\r\n") == std::string::npos) {
+				if (header_end == std::string::npos) {
 					continue;
 				}
-
+				size_t content_length = 0;
+				size_t cl_pos = request.find("Content-Length:");
+				
+				//parse the number (read body according to content lenght)
+				if (cl_pos != std::string::npos){
+					size_t value_start = cl_pos + 16;
+					size_t value_end = request.find("\r\n", value_start);
+					std::string len_str = request.substr(value_start, value_end - value_start);
+					content_length = std::stoi(len_str);
+				}
+				size_t total_expected = (header_end + 4) + content_length;
+				if (request.size() < total_expected){
+					continue;
+				}
 				// Extract first HTTP line
 				size_t line_end = request.find("\r\n");
 				std::string request_line = request.substr(0, line_end);
