@@ -49,3 +49,16 @@ Designed and developed a scalable HTTP server from scratch in C++ using low-leve
 * Performance-oriented design
 * Debugging and connection management
 * Scalable server development
+## Screenshots
+
+### Homepage
+
+![Homepage](screenshots/Index.html.png)
+
+### Username
+
+![Username](screenshots/Hello_Username.png)
+
+### Terminal
+
+![Terminal](screenshots/TerminalOutput.png)
