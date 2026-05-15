@@ -10,7 +10,27 @@
 #include <unordered_map>
 #include <errno.h> // errno, EAGAIN, EWOULDBLOCK
 #include <functional>
+#include <fstream>
 
+//applying fstream
+std::string serve_file(const std::string& filename) {
+	std::ifstream file(filename);
+	if(!file.is_open()){
+		return "404 File Not Found\n";
+	}
+	std::string content(
+		(std::istreambuf_iterator<char>(file)),
+		std::istreambuf_iterator<char>() 
+	);
+	return content;
+}
+
+std::string handle_css(const std::string&) {
+	return serve_file("style.css");
+}
+std::string handle_index(const std::string&) {
+	return serve_file("index.html");
+}
 std::string handle_home(const std::string&) {
 	return "Hello World\n";
 }
@@ -22,6 +42,19 @@ std::string handle_login(const std::string& body) {
 }
 
 using Handler = std::function<std::string(const std::string&)>;
+
+std::string get_content_type(const std::string& path) {
+	if (path.find(".html") != std::string::npos){
+		return "text/html";
+	}
+	if (path.find(".css") != std::string::npos){
+		return "text/css";
+	}
+	if (path.find(".js") != std::string::npos) {
+        return "application/javascript";
+    }
+    return "text/plain";
+}	
 
 int main() {
 
@@ -54,6 +87,8 @@ int main() {
 	routes["GET /"] = handle_home;
 	routes["GET /hello"] = handle_hello;
 	routes["POST /login"] = handle_login;
+	routes["GET /index.html"] = handle_index;
+	routes["GET /style.css"] = handle_css;
 
 	// Configure server event
 	struct epoll_event ev;
@@ -218,12 +253,22 @@ int main() {
 				// HTTP response variables
 				std::string response_body;
 				std::string status_line;
+				std::string content_type = "text/plain";
 
 				// Route handling
 
-				if (routes.find(route_key) != routes.end()){
+				if (method == "GET" &&
+				path.find("/user/") == 0){
+					std::string username = path.substr(6);
+					response_body = "Hello " + username + "\n";
+					status_line = "HTTP/1.1 200 OK\r\n";
+					content_type = "text/plain";
+				}
+
+				else if (routes.find(route_key) != routes.end()){
 					response_body = routes[route_key](body);
 					status_line = "HTTP/1.1 200 OK\r\n";
+					content_type = get_content_type(path);
 				}
 				else {
 					response_body = "404 Not Found\n";
@@ -232,7 +277,7 @@ int main() {
 				// Build HTTP response
 				std::string response =
 					status_line +
-					"Content-Type: text/plain\r\n"
+					"Content-Type: " + content_type + "\r\n"
 					"Content-Length: " + std::to_string(response_body.size()) + "\r\n"
 					"\r\n" +
 					response_body;
