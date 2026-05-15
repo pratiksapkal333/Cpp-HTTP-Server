@@ -1,29 +1,32 @@
-Project: Event-Driven HTTP Server (C++ | Linux)
+**Event-Driven HTTP Server | C++, Linux, epoll, Socket Programming**
 
-Description:
-- Built a high-performance HTTP server from scratch using C++
-- Implemented Linux TCP socket programming
-- Used non-blocking sockets with fcntl(O_NONBLOCK)
-- Integrated epoll for scalable I/O multiplexing
-- Implemented edge-triggered epoll (EPOLLET)
-- Designed asynchronous event-driven reactor architecture
-- Added persistent per-client request buffering
-- Handled partial TCP packet reads correctly
-- Implemented HTTP request parsing
-- Added Content-Length based POST body handling
-- Supported GET and POST HTTP methods
-- Built modular routing system using unordered_map
-- Added function-based route handlers
-- Managed multiple concurrent client connections efficiently
+### Description
 
-Concepts Learned:
-- Linux System Programming
-- Socket Programming
-- TCP/IP Networking
-- Non-blocking I/O
-- epoll Internals
-- Event-driven Architecture
-- HTTP Protocol
-- Partial Reads/Writes
-- Stateful Request Parsing
-- Backend Server Design
+* Built a high-performance HTTP server from scratch in C++ using Linux TCP socket programming and asynchronous event-driven architecture
+* Implemented non-blocking sockets using `fcntl(O_NONBLOCK)` and scalable I/O multiplexing using `epoll` with edge-triggered mode (`EPOLLET`)
+* Designed a reactor-style event loop capable of handling multiple concurrent client connections efficiently
+* Implemented persistent per-client buffering to correctly handle fragmented TCP packets and partial HTTP requests
+* Developed HTTP request parsing including request line extraction, header parsing, `Content-Length` handling, and POST body processing
+* Added support for GET and POST methods with modular function-based routing using `unordered_map` and handler dispatch architecture
+* Built static file serving for HTML/CSS files with MIME type handling for proper browser rendering
+* Managed socket lifecycle, epoll registration/removal, disconnect cleanup, and non-blocking read handling using `EAGAIN/EWOULDBLOCK`
+
+### Concepts Learned
+
+* Linux System Programming
+* TCP/IP Socket Programming
+* HTTP Protocol Internals
+* Non-blocking I/O
+* epoll & I/O Multiplexing
+* Edge-triggered vs Level-triggered epoll
+* Event-driven / Reactor Architecture
+* Concurrent Client Handling
+* Partial TCP Packet Handling
+* Persistent Request Buffering
+* HTTP Request & Header Parsing
+* Content-Length Based Body Parsing
+* Static File Serving
+* MIME Type Handling
+* Backend Server Architecture
+* Function-based Routing Systems
+* Asynchronous Networking Concepts
