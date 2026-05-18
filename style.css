@@ -1,5 +1,81 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
-    background-color: black;
-    color: lime;
-    font-family: Arial;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #0f172a, #111827, #1e293b);
+    color: white;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 40px;
+    width: 800px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+}
+
+h1 {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}
+
+.subtitle {
+    color: #cbd5e1;
+    font-size: 1.1rem;
+    margin-bottom: 35px;
+}
+
+.features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 40px;
+}
+
+.feature {
+    background: rgba(255,255,255,0.08);
+    padding: 15px;
+    border-radius: 12px;
+    font-weight: bold;
+}
+
+.buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.buttons a {
+    text-decoration: none;
+    background: #38bdf8;
+    color: black;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.buttons a:hover {
+    transform: translateY(-3px);
+    background: #0ea5e9;
 }

@@ -31,9 +31,6 @@ std::string handle_css(const std::string&) {
 std::string handle_index(const std::string&) {
 	return serve_file("index.html");
 }
-std::string handle_home(const std::string&) {
-	return "Hello World\n";
-}
 std::string handle_hello(const std::string&) {
 	return "Hello from /hello\n";
 }
@@ -84,7 +81,7 @@ int main() {
 	std::unordered_map<int, std::string> client_buffers;
 	std::unordered_map<std::string, Handler> routes;
 
-	routes["GET /"] = handle_home;
+	routes["GET /"] = handle_index;
 	routes["GET /hello"] = handle_hello;
 	routes["POST /login"] = handle_login;
 	routes["GET /index.html"] = handle_index;
